@@ -1,3 +1,4 @@
+// github.com/wpxq
 package main
 
 import (
@@ -135,15 +136,18 @@ func main() {
 		9100:  "Node Exporter/Printer",
 		9411:  "Zipkin",
 		// VPN & Proxy
-		1194: "OpenVPN",
-		1723: "PPTP VPN",
-		3128: "Squid Proxy",
-		8188: "Privoxy",
-		8888: "Fiddler/Burp",
-		9050: "Tor Proxy",
-		9051: "Tor Control",
-		1080: "SOCKS4/5",
-		6443: "Kubernetes API",
+		1194:  "OpenVPN",
+		1723:  "PPTP VPN",
+		3128:  "Squid Proxy",
+		8188:  "Privoxy",
+		8888:  "Fiddler/Burp",
+		9050:  "Tor Proxy",
+		9051:  "Tor Control",
+		1080:  "SOCKS4/5",
+		6443:  "Kubernetes API",
+		500:   "IKEv2/IPsec",
+		4500:  "IKEv2/IPsec",
+		51820: "WireGuard",
 		// Other & Mixed
 		1857: "Startron",
 		1271: "EXCW",
