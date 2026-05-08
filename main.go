@@ -19,9 +19,11 @@ type ScanResult struct {
 	Banner  string
 }
 
-func getBanner(conn net.Conn) string {
+func getBanner(conn net.Conn, isWeb bool) string {
 	conn.SetReadDeadline(time.Now().Add(time.Second * 2))
-	fmt.Fprint(conn, "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+	if isWeb {
+		fmt.Fprint(conn, "GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+	}
 	buffer := make([]byte, 512)
 	n, err := conn.Read(buffer)
 	if err != nil {
@@ -81,8 +83,9 @@ func main() {
 		465: "SMTPS",
 		993: "IMAPS",
 		995: "POP3S",
+		587: "SMTP-Submission",
 		// Database & Cache
-		3306:  "MySQL",
+		3306:  "MySQL/MariaDB",
 		5432:  "PostgreSQL",
 		6379:  "Redis",
 		27017: "MongoDB",
@@ -133,14 +136,13 @@ func main() {
 		515:  "LDP",
 		631:  "IPP/CUPS",
 		// Monitoring, Backup & DevTools
-		1521:  "Oracle DB",
-		33060: "MySQL Shell",
-		5672:  "RabbitMQ",
-		8081:  "Nexus/HTTP-Alt",
-		818:   "GlassFish/Jenkins-Alt",
-		9090:  "Prometheus/Cockpit",
-		9100:  "Node Exporter/Printer",
-		9411:  "Zipkin",
+		1521: "Oracle DB",
+		5672: "RabbitMQ",
+		8081: "Nexus/HTTP-Alt",
+		818:  "GlassFish/Jenkins-Alt",
+		9090: "Prometheus/Cockpit",
+		9100: "Node Exporter/Printer",
+		9411: "Zipkin",
 		// VPN & Proxy
 		1194:  "OpenVPN",
 		1723:  "PPTP VPN",
@@ -190,8 +192,16 @@ func main() {
 			if err == nil {
 				banner := ""
 				isWeb := strings.Contains(strings.ToLower(n), "http")
-				if *servicePtr && isWeb {
-					banner = getBanner(conn)
+				isCommon := strings.Contains(strings.ToLower(n), "ssh") ||
+					strings.Contains(strings.ToLower(n), "ftp") ||
+					strings.Contains(strings.ToLower(n), "telnet") ||
+					strings.Contains(strings.ToLower(n), "smtp") ||
+					strings.Contains(strings.ToLower(n), "mysql") ||
+					strings.Contains(strings.ToLower(n), "mariadb") ||
+					strings.Contains(strings.ToLower(n), "pop3") ||
+					strings.Contains(strings.ToLower(n), "imap")
+				if *servicePtr && (isWeb || isCommon) {
+					banner = getBanner(conn, isWeb)
 				}
 				conn.Close()
 
