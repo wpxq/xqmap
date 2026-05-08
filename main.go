@@ -36,13 +36,14 @@ func main() {
 	green := color.New(color.FgGreen).SprintFunc()
 	magenta := color.New(color.FgMagenta).SprintFunc()
 	yellow := color.New(color.FgYellow).SprintFunc()
+	red := color.New(color.FgRed).SprintfFunc()
 
 	flag.Usage = func() {
 		fmt.Printf("\n%s\n", white("[ xqmap ]"))
 		fmt.Printf("Usage: xqmap %s\n\n", cyan("<host>"))
 		fmt.Println(white("Options:"))
 		fmt.Println("  -s      Enable service detection (banners)")
-		fmt.Println("Example: xqmap 192.168.0.1")
+		fmt.Println("Example: xqmap -s 192.168.0.1")
 	}
 	servicePtr := flag.Bool("s", false, "Enable service detection")
 
@@ -98,17 +99,22 @@ func main() {
 		28015: "Rust",
 		19132: "Minecraft Bedrock",
 		// Infrastructure & IoT
-		53:   "Domain",
-		161:  "SNMP",
-		1883: "MQTT",
-		554:  "RTSP",
-		445:  "SMB",
-		5060: "SIP (VoIP)",
-		5061: "SIP (VoIP-TLS)",
-		5353: "mDNS",
-		8000: "Icecast/Radio",
-		1900: "UPnP (SSDP)",
-		2869: "UPnP (Event)",
+		53:    "DNS",
+		161:   "SNMP",
+		445:   "SMB",
+		554:   "RTSP (Video Stream - Camera)",
+		1883:  "MQTT",
+		1900:  "UPnP (SSDP - Device Discovery)",
+		1935:  "RTMP (Video Stream)",
+		2869:  "UPnP (Windows Event)",
+		3702:  "WS-Discovery (ONVIF Camera)",
+		5060:  "SIP (VoIP Phone)",
+		5061:  "SIP-TLS (VoIP Phone)",
+		5353:  "mDNS (Apple/Google Discovery)",
+		8000:  "HikVision (CCTV Control)/Chromecast",
+		8554:  "RTSP (Alternative Stream)",
+		34567: "Xiongmai/XMeye (CCTV)",
+		37777: "Dahua (CCTV Control)",
 		// Windows & Enterprise Services
 		88:   "Kerberos",
 		135:  "RPC Endpoint Mapper",
@@ -163,8 +169,15 @@ func main() {
 	var foundPorts []ScanResult
 
 	fmt.Printf("\n%s Scanning: [%s]\n", magenta("[*]"), white(targetHost))
+	testPort := 54321
+	checkAddr := fmt.Sprintf("%s:%d", targetHost, testPort)
+	testConn, testErr := net.DialTimeout("tcp", checkAddr, 1500*time.Millisecond)
+	if testErr == nil {
+		testConn.Close()
+		fmt.Printf("%s %s\n", red("[!]"), yellow("WARNING: Firewall/Honeypot detected | Results may be fake."))
+	}
 	if *servicePtr {
-		fmt.Printf("%s Service detection: %s\n", magenta("[*]"), green("ENABLED"))
+		fmt.Printf("%s Service detection: %s\n", magenta("[*]"), green("[ENABLED]"))
 	}
 	fmt.Println("-------------------------------------------")
 
@@ -173,11 +186,11 @@ func main() {
 		go func(p int, n string) {
 			defer wg.Done()
 			address := fmt.Sprintf("%s:%d", targetHost, p)
-
-			conn, err := net.DialTimeout("tcp", address, time.Millisecond*800)
+			conn, err := net.DialTimeout("tcp", address, 2*time.Second)
 			if err == nil {
 				banner := ""
-				if *servicePtr {
+				isWeb := strings.Contains(strings.ToLower(n), "http")
+				if *servicePtr && isWeb {
 					banner = getBanner(conn)
 				}
 				conn.Close()
@@ -187,6 +200,7 @@ func main() {
 				mu.Unlock()
 			}
 		}(port, name)
+		time.Sleep(50 * time.Millisecond)
 	}
 
 	wg.Wait()
@@ -196,7 +210,7 @@ func main() {
 	})
 
 	if len(foundPorts) == 0 {
-		fmt.Println("No open ports found.")
+		fmt.Printf("%s No open ports found\n", red("[!]"))
 	} else {
 		for _, res := range foundPorts {
 			fmt.Printf("%s Port %-5d [ %s ] %s", magenta("[*]"), res.Port, res.Service, green("open"))
