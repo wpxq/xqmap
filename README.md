@@ -9,7 +9,7 @@ A concurrent network port scanner written in Go, designed for DevOps and CyberSe
 
 ## Features
 - **Fast Scanning:** Utilizes Go's goroutines to scan multiple ports simultaneously.
-- **Service Detection:** Optional banner grabbing (`-s` flag) to identify service versions (e.g., HTTP Server headers).
+- **Service Detection:** Optional banner grabbing (`-s` flag) to identify service versions for **HTTP**, **SSH**, **FTP**, **SMTP** and more.
 - **Firewall Detection:** Identifies if a target is behind a firewall or honeypot by performing out-of-band validation on non-standard ports to filter false-positive results.
 - **Deep Port Map:** Includes a comprehensive list of ports covering:
     - Infrastructure (SSH, RDP, WinBox)
