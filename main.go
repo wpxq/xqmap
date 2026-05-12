@@ -165,12 +165,17 @@ func main() {
 		1064: "JSTEL",
 		1244: "ISB-Conference",
 	}
+	type job struct {
+		port int
+		name string
+	}
+	jobs := make(chan job, len(allPorts))
 
 	var wg sync.WaitGroup
+	numWorkers := 20
 	var mu sync.Mutex
 	var foundPorts []ScanResult
 
-	fmt.Printf("\n%s Scanning: [%s]\n", magenta("[*]"), white(targetHost))
 	testPort := 54321
 	checkAddr := fmt.Sprintf("%s:%d", targetHost, testPort)
 	testConn, testErr := net.DialTimeout("tcp", checkAddr, 1500*time.Millisecond)
@@ -183,36 +188,41 @@ func main() {
 	}
 	fmt.Println("-------------------------------------------")
 
+	for w := 1; w <= numWorkers; w++ {
+		go func() {
+			for j := range jobs {
+				address := fmt.Sprintf("%s:%d", targetHost, j.port)
+				conn, err := net.DialTimeout("tcp", address, 2*time.Second)
+				if err == nil {
+					banner := ""
+					isWeb := strings.Contains(strings.ToLower(j.name), "http")
+					isCommon := strings.Contains(strings.ToLower(j.name), "ssh") ||
+						strings.Contains(strings.ToLower(j.name), "ftp") ||
+						strings.Contains(strings.ToLower(j.name), "telnet") ||
+						strings.Contains(strings.ToLower(j.name), "smtp") ||
+						strings.Contains(strings.ToLower(j.name), "mysql") ||
+						strings.Contains(strings.ToLower(j.name), "mariadb") ||
+						strings.Contains(strings.ToLower(j.name), "pop3") ||
+						strings.Contains(strings.ToLower(j.name), "imap")
+					if *servicePtr && (isWeb || isCommon) {
+						banner = getBanner(conn, isWeb)
+					}
+					conn.Close()
+
+					mu.Lock()
+					foundPorts = append(foundPorts, ScanResult{j.port, j.name, banner})
+					mu.Unlock()
+				}
+				wg.Done()
+			}
+		}()
+	}
+	fmt.Printf("\n%s Scanning: [%s] with %d workers\n", magenta("[*]"), white(targetHost), numWorkers)
 	for port, name := range allPorts {
 		wg.Add(1)
-		go func(p int, n string) {
-			defer wg.Done()
-			address := fmt.Sprintf("%s:%d", targetHost, p)
-			conn, err := net.DialTimeout("tcp", address, 2*time.Second)
-			if err == nil {
-				banner := ""
-				isWeb := strings.Contains(strings.ToLower(n), "http")
-				isCommon := strings.Contains(strings.ToLower(n), "ssh") ||
-					strings.Contains(strings.ToLower(n), "ftp") ||
-					strings.Contains(strings.ToLower(n), "telnet") ||
-					strings.Contains(strings.ToLower(n), "smtp") ||
-					strings.Contains(strings.ToLower(n), "mysql") ||
-					strings.Contains(strings.ToLower(n), "mariadb") ||
-					strings.Contains(strings.ToLower(n), "pop3") ||
-					strings.Contains(strings.ToLower(n), "imap")
-				if *servicePtr && (isWeb || isCommon) {
-					banner = getBanner(conn, isWeb)
-				}
-				conn.Close()
-
-				mu.Lock()
-				foundPorts = append(foundPorts, ScanResult{p, n, banner})
-				mu.Unlock()
-			}
-		}(port, name)
-		time.Sleep(50 * time.Millisecond)
+		jobs <- job{port, name}
 	}
-
+	close(jobs)
 	wg.Wait()
 
 	sort.Slice(foundPorts, func(i, j int) bool {

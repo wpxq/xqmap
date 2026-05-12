@@ -3,12 +3,13 @@
 ![xqmap](https://github.com/wpxq/xqmap/blob/main/xqmap.png)
 
 ---
-A concurrent network port scanner written in Go, designed for DevOps and CyberSecurity enthusiasts. It features high-speed TCP scanning using goroutines, service detection, and colorized output for better readability.
+
+A high-performance, concurrent network port scanner written in Go. It utilizes a controlled worker pool pattern for efficient resource management, allowing for high-speed TCP scanning without overwhelming the host system. Features include banner grabbing for service detection, firewall/honeypot alerts, and a clean, colorized CLI interface.
 
 ---
 
 ## Features
-- **Fast Scanning:** Utilizes Go's goroutines to scan multiple ports simultaneously.
+- **High-Performance Scanning:** Implements a controlled worker pool pattern using Go's goroutines and channels, ensuring maximum speed without exhausting system resources (preventing "too many open files" errors).
 - **Service Detection:** Optional banner grabbing (`-s` flag) to identify service versions for **HTTP**, **SSH**, **FTP**, **SMTP** and more.
 - **Firewall Detection:** Identifies if a target is behind a firewall or honeypot by performing out-of-band validation on non-standard ports to filter false-positive results.
 - **Deep Port Map:** Includes a comprehensive list of ports covering:
